@@ -2,5 +2,5 @@
 ".\Objects\Timer0.obj",
 ".\Objects\Key.obj",
 ".\Objects\Delay.obj" 
-TO ".\Objects\Project" 
-PRINT(".\Listings\Project.m51") RAMSIZE(256) 
+TO ".\Objects\project" 
+PRINT(".\Listings\project.m51") RAMSIZE(256) 

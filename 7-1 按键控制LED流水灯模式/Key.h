@@ -1,5 +1,5 @@
-#ifndef __KEY_H__
-#define __KEY_H__
+#ifndef __Key_H__
+#define __Key_H__
 
 unsigned char Key();
 
