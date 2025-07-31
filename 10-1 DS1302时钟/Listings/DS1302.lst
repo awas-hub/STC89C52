@@ -1,0 +1,194 @@
+C51 COMPILER V9.54   DS1302                                                                07/23/2025 17:02:16 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DS1302
+OBJECT MODULE PLACED IN .\Objects\DS1302.obj
+COMPILER INVOKED BY: E:\DanPianji\Keil5_51\C51\BIN\C51.EXE DS1302.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\
+                    -Listings\DS1302.lst) OBJECT(.\Objects\DS1302.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          
+   3          sbit DS1302_SCLK = P3^6;  // DS1302 时钟信号引脚
+   4          sbit DS1302_IO = P3^4;    // DS1302 数据信号引脚
+   5          sbit DS1302_CE = P3^5;    // DS1302 片选信号引脚
+   6          
+   7          // 写入指令地址定义
+   8          #define DS1302_SECOND     0x80
+   9          #define DS1302_MINUTE     0x82
+  10          #define DS1302_HOUR       0x84
+  11          #define DS1302_DATE       0x86
+  12          #define DS1302_MONTH      0x88
+  13          #define DS1302_DAY        0x8A
+  14          #define DS1302_YEAR       0x8C
+  15          #define DS1302_WP         0x8E //芯片写保护开关地址
+  16          
+  17          // 时间数据数组，格式：年 月 日 时 分 秒 星期
+  18          unsigned DS1302_Time[]={25,7,23,15,30,44,3};
+  19          
+  20          
+  21          /**
+  22            * @brief DS1302时钟初始化
+  23            * @param 无
+  24            * @retval 无
+  25            */
+  26          void DS1302_Init(void)
+  27          {
+  28   1              DS1302_CE = 0;        // 拉低片选信号，选择DS1302芯片
+  29   1          DS1302_SCLK = 0;      // 拉低时钟信号，初始化时钟
+  30   1      }
+  31          
+  32          
+  33          /**
+  34            * @brief 写入指令 + 数据
+  35            * @param Command 写入的指令
+  36            * @param Data 写入的数据
+  37            * @retval 无
+  38            */
+  39          void DS1302_WriteByte(unsigned char Command, unsigned char Data)
+  40          {
+  41   1              unsigned char i;
+  42   1          DS1302_CE = 1;        // 拉高片选信号，开始通信
+  43   1              
+  44   1               // 发送指令字节（8位）
+  45   1              for(i = 0; i < 8; i++)
+  46   1              {
+  47   2              DS1302_IO = Command & (0x01 << i);  // 逐位发送指令
+  48   2              DS1302_SCLK = 1;                    // 上升沿发送数据
+  49   2              DS1302_SCLK = 0;                    // 下降沿完成数据传输
+  50   2              }
+  51   1              
+  52   1               // 发送数据字节（8位）
+  53   1              for(i = 0; i < 8; i++)
+  54   1              {
+C51 COMPILER V9.54   DS1302                                                                07/23/2025 17:02:16 PAGE 2   
+
+  55   2              DS1302_IO = Data & (0x01 << i);     // 逐位发送数据
+  56   2              DS1302_SCLK = 1;                    // 上升沿发送数据
+  57   2              DS1302_SCLK = 0;                    // 下降沿完成数据传输
+  58   2              }
+  59   1              DS1302_CE = 0;
+  60   1      }
+  61          
+  62          
+  63          /**
+  64            * @brief DS1302读取指令
+  65            * @param Command 指令
+  66            * @retval Data 需要返回的数据
+  67            */
+  68          unsigned char DS1302_ReadByte(unsigned char Command)
+  69          {
+  70   1              unsigned char i, Data = 0x00;
+  71   1          Command |= 0x01;      // 设置读操作标志位（根据DS1302手册Figure3）
+  72   1          DS1302_CE = 1;        // 拉高片选信号，开始通信
+  73   1              
+  74   1          // 发送指令字节（8位）
+  75   1          for(i = 0; i < 8; i++)
+  76   1          {
+  77   2              DS1302_IO = Command & (0x01 << i);  // 逐位发送指令
+  78   2              DS1302_SCLK = 0;                    // 下降沿准备读取数据
+  79   2              DS1302_SCLK = 1;                    // 上升沿完成数据读取
+  80   2          }
+  81   1          
+  82   1          // 读取数据字节（8位）
+  83   1          for(i = 0; i < 8; i++)
+  84   1          {
+  85   2              DS1302_SCLK = 1;                    // 上升沿准备读取数据
+  86   2              DS1302_SCLK = 0;                    // 下降沿完成数据读取
+  87   2              if(DS1302_IO){Data |= (0x01 << i);} // 逐位接收数据
+  88   2          }
+  89   1          
+  90   1          DS1302_CE = 0;        // 拉低片选信号，结束通信
+  91   1          DS1302_IO = 0;        // 拉低数据线，释放总线
+  92   1          return Data;          // 返回读取的数据
+  93   1      }
+  94          
+  95          
+  96          /**
+  97            * @brief DS1302写入时间
+  98            * @param 无
+  99            * @retval 无
+ 100            */
+ 101          void DS1302_SetTime(void)
+ 102          {
+ 103   1              /*
+ 104   1          如果读出时间为一个大于59并且不动的数，
+ 105   1          则芯片有可能是处于写保护状态
+ 106   1          */
+ 107   1          
+ 108   1          // 1. 解除芯片写保护
+ 109   1          DS1302_WriteByte(DS1302_WP, 0x00); // BIT7=0，解除写保护
+ 110   1          
+ 111   1          // 2. 写入时间数据（BCD码格式）
+ 112   1              //注：BCD码转换逻辑，运算符的优先级 例：DS1302_Time[0] / 10 * 16 + DS1302_Time[0] % 10 运算符的逻辑顺序
+ 113   1          DS1302_WriteByte(DS1302_YEAR,    (DS1302_Time[0] / 10) * 16 + (DS1302_Time[0] % 10));  // 年
+ 114   1          DS1302_WriteByte(DS1302_MONTH,   (DS1302_Time[1] / 10) * 16 + (DS1302_Time[1] % 10));  // 月
+ 115   1          DS1302_WriteByte(DS1302_DATE,    (DS1302_Time[2] / 10) * 16 + (DS1302_Time[2] % 10));  // 日
+ 116   1          DS1302_WriteByte(DS1302_HOUR,    (DS1302_Time[3] / 10) * 16 + (DS1302_Time[3] % 10));  // 时
+C51 COMPILER V9.54   DS1302                                                                07/23/2025 17:02:16 PAGE 3   
+
+ 117   1          DS1302_WriteByte(DS1302_MINUTE,  (DS1302_Time[4] / 10) * 16 + (DS1302_Time[4] % 10));  // 分
+ 118   1          DS1302_WriteByte(DS1302_SECOND,  (DS1302_Time[5] / 10) * 16 + (DS1302_Time[5] % 10));  // 秒
+ 119   1          DS1302_WriteByte(DS1302_DAY,     (DS1302_Time[6] / 10) * 16 + (DS1302_Time[6] % 10));  // 星期
+ 120   1          
+ 121   1          // 3. 重新启用写保护
+ 122   1          DS1302_WriteByte(DS1302_WP, 0x80); // BIT7=1，启用写保护
+ 123   1      
+ 124   1      }
+ 125          
+ 126          
+ 127          /**
+ 128            * @brief DS1302读出时间
+ 129            * @param 无
+ 130            * @retval 无
+ 131            */
+ 132          void DS1302_ReadTime(void)
+ 133          {
+ 134   1               // 执行指令，读取时间数据
+ 135   1          unsigned char Temp;
+ 136   1          
+ 137   1          Temp = DS1302_ReadByte(DS1302_YEAR);
+ 138   1          DS1302_Time[0] = Temp / 16 * 10 + Temp % 16;  // BCD码转十进制 -- Temp
+ 139   1          
+ 140   1          Temp = DS1302_ReadByte(DS1302_MONTH);
+ 141   1          DS1302_Time[1] = Temp / 16 * 10 + Temp % 16;
+ 142   1          
+ 143   1          Temp = DS1302_ReadByte(DS1302_DATE);
+ 144   1          DS1302_Time[2] = Temp / 16 * 10 + Temp % 16;
+ 145   1          
+ 146   1          Temp = DS1302_ReadByte(DS1302_HOUR);
+ 147   1          DS1302_Time[3] = Temp / 16 * 10 + Temp % 16;
+ 148   1          
+ 149   1          Temp = DS1302_ReadByte(DS1302_MINUTE);
+ 150   1          DS1302_Time[4] = Temp / 16 * 10 + Temp % 16;
+ 151   1          
+ 152   1          Temp = DS1302_ReadByte(DS1302_SECOND);
+ 153   1          DS1302_Time[5] = Temp / 16 * 10 + Temp % 16;
+ 154   1          
+ 155   1          Temp = DS1302_ReadByte(DS1302_DAY);
+ 156   1          DS1302_Time[6] = Temp / 16 * 10 + Temp % 16;
+ 157   1          
+ 158   1          /*
+ 159   1          RTC的寄存器是以BCD码形式存储的
+ 160   1          用4位二进制数来表示1位十进制数
+ 161   1          例：0001 0011 表示 13  1000 0101 表示 85
+ 162   1          
+ 163   1          BCD码转十进制：DEC = BCD / 16 * 10 + BCD % 16;(2位BCD)
+ 164   1          十进制转BCD码：BCD = DEC / 10 * 16 + DEC % 10;(2位BCD)
+ 165   1          */
+ 166   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    619    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

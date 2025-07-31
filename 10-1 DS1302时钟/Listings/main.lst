@@ -1,0 +1,52 @@
+C51 COMPILER V9.54   MAIN                                                                  07/23/2025 16:47:27 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: E:\DanPianji\Keil5_51\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Li
+                    -stings\main.lst) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REGX52.H>
+   2          #include "LCD1602.h"
+   3          #include "DS1302.h"
+   4          
+   5          void main()
+   6          {
+   7   1          LCD_Init(); // 初始化LCD显示
+   8   1          DS1302_Init(); // 初始化DS1302时钟芯片
+   9   1          LCD_ShowString(1, 1, "  -  -  "); // 第一行显示日期占位符
+  10   1          LCD_ShowString(2, 1, "  :  :  "); // 第二行显示时间占位符
+  11   1          
+  12   1          DS1302_SetTime(); // 设置初始时间（注意：实际使用时可能需要取消写保护）
+  13   1      
+  14   1          while(1)
+  15   1          {
+  16   2              DS1302_ReadTime(); // 从DS1302读取当前时间
+  17   2                      
+  18   2              // 显示年月日
+  19   2              LCD_ShowNum(1, 1, DS1302_Time[0], 2); // 显示年份（2位）
+  20   2              LCD_ShowNum(1, 4, DS1302_Time[1], 2); // 显示月份（2位）
+  21   2              LCD_ShowNum(1, 7, DS1302_Time[2], 2); // 显示日期（2位）
+  22   2                      
+  23   2              // 显示时分秒
+  24   2              LCD_ShowNum(2, 1, DS1302_Time[3], 2); // 显示小时（2位）
+  25   2              LCD_ShowNum(2, 4, DS1302_Time[4], 2); // 显示分钟（2位）
+  26   2              LCD_ShowNum(2, 7, DS1302_Time[5], 2); // 显示秒钟（2位）        
+  27   2          }
+  28   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    124    ----
+   CONSTANT SIZE    =     18    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
