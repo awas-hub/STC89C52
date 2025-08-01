@@ -29,6 +29,7 @@ unsigned int XPT2046_ReadAD(unsigned char Command)
 		XPY2046_DCLK=1;
 		XPY2046_DCLK=0;
 		if(XPY2046_DOUT){Data|=(0x8000>>i);}
+        Delay(1);
 	}
 	XPY2046_CS=1;
 	return Data>>8;
